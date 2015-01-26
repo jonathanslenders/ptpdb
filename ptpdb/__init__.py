@@ -36,6 +36,8 @@ from .grammar import create_pdb_grammar
 #from .key_bindings import load_custom_pdb_key_bindings
 from .layout import PdbLeftMargin
 from .toolbars import PdbShortcutsToolbar, FileLocationToolbar
+from .completion_hints import CompletionHint
+from .style import PdbStyle
 
 import linecache
 import os
@@ -100,6 +102,7 @@ class PtPdb(pdb.Pdb):
         #     return False
 
         self.cli = PythonCommandLineInterface(
+                style=PdbStyle,
                 get_locals=lambda: self.curframe.f_locals,
                 get_globals=lambda: self.curframe.f_globals,
                 _completer=DynamicCompleter(lambda: self.completer),
@@ -107,6 +110,7 @@ class PtPdb(pdb.Pdb):
                 _python_prompt_control=PdbLeftMargin(self.python_cli_settings,
                                                      self._get_current_pdb_commands()),
                 _extra_buffers={'source_code': Buffer()},
+                _extra_buffer_processors=[CompletionHint()],
                 _extra_sidebars=[
                     HSplit([
                         FileLocationToolbar(weakref.ref(self)),
