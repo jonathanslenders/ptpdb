@@ -11,7 +11,7 @@ Usage::
 from __future__ import unicode_literals, absolute_import
 from pygments.lexers import PythonLexer
 
-from prompt_toolkit import AbortAction, Exit
+from prompt_toolkit import AbortAction
 from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.contrib.regular_languages.completion import GrammarCompleter
 from prompt_toolkit.contrib.regular_languages.validation import GrammarValidator
@@ -23,6 +23,7 @@ from prompt_toolkit.layout import HSplit, Window
 from prompt_toolkit.layout.controls import BufferControl
 from prompt_toolkit.completion import Completer
 from prompt_toolkit.validation import Validator
+from prompt_toolkit.contrib.shortcuts import create_eventloop
 
 from ptpython.completer import PythonCompleter
 from ptpython.key_bindings import load_python_bindings
@@ -102,6 +103,7 @@ class PtPdb(pdb.Pdb):
         #     return False
 
         self.cli = PythonCommandLineInterface(
+                eventloop=create_eventloop(),
                 style=PdbStyle,
                 get_locals=lambda: self.curframe.f_locals,
                 get_globals=lambda: self.curframe.f_globals,
@@ -219,8 +221,8 @@ class PtPdb(pdb.Pdb):
         })
 
         try:
-            return self.cli.cli.read_input(on_exit=AbortAction.RAISE_EXCEPTION).text
-        except Exit:
+            return self.cli.cli.read_input().text
+        except EOFError:
             # Turn Control-D key press into a 'quit' command.
             return 'q'
 

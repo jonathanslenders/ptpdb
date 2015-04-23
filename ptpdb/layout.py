@@ -1,7 +1,6 @@
 from __future__ import unicode_literals, absolute_import
 
 from prompt_toolkit.layout.controls import TokenListControl
-from ptpython.utils import current_python_buffer
 
 from pygments.token import Token
 
@@ -15,18 +14,15 @@ class PdbLeftMargin(TokenListControl):
     """
     def __init__(self, settings, pdb_commands):
         def get_tokens(cli):
-            _, buffer = current_python_buffer(cli, settings)
+            b = cli.buffers['default']
 
-            if buffer:
-                command = buffer.document.text.lstrip()
-                if command:
-                    command = command.split()[0]
+            command = b.document.text.lstrip()
+            if command:
+                command = command.split()[0]
 
-                if any(c.startswith(command) for c in pdb_commands):
-                    return [(Token.Prompt, '(pdb) ')]
-                else:
-                    return [(Token.Prompt, '  >>> ')]
+            if any(c.startswith(command) for c in pdb_commands):
+                return [(Token.Prompt, '(pdb) ')]
             else:
-                return []
+                return [(Token.Prompt, '  >>> ')]
 
         super(PdbLeftMargin, self).__init__(get_tokens)

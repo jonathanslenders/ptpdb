@@ -11,6 +11,6 @@ setup(
         long_description='',
         packages=find_packages('.'),
         install_requires = [
-            'ptpython',
+            'ptpython==0.5',
         ],
 )

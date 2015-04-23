@@ -10,7 +10,8 @@ class CompletionHint(AfterInput):
     Completion hint to be shown after the input.
     """
     def __init__(self):
-        def get_tokens(cli, buffer):
+        def get_tokens(cli):
+            buffer = cli.buffers['default']
             words = buffer.document.text.split()
             if len(words) == 1:
                 word = words[0]
