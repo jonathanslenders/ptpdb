@@ -11,7 +11,6 @@ Usage::
 from __future__ import unicode_literals, absolute_import
 from pygments.lexers import PythonLexer
 
-from prompt_toolkit import AbortAction
 from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.contrib.regular_languages.completion import GrammarCompleter
 from prompt_toolkit.contrib.regular_languages.validation import GrammarValidator
