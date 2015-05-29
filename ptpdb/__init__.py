@@ -22,7 +22,7 @@ from prompt_toolkit.layout import HSplit, Window
 from prompt_toolkit.layout.controls import BufferControl
 from prompt_toolkit.completion import Completer
 from prompt_toolkit.validation import Validator
-from prompt_toolkit.contrib.shortcuts import create_eventloop
+from prompt_toolkit.shortcuts import create_eventloop
 
 from ptpython.completer import PythonCompleter
 from ptpython.key_bindings import load_python_bindings
