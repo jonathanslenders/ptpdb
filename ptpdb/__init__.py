@@ -17,23 +17,21 @@ from prompt_toolkit.contrib.regular_languages.validation import GrammarValidator
 from prompt_toolkit.document import Document
 from prompt_toolkit.filters import IsDone
 from prompt_toolkit.history import FileHistory
-from prompt_toolkit.key_binding.manager import KeyBindingManager
 from prompt_toolkit.layout import HSplit, Window
 from prompt_toolkit.layout.controls import BufferControl
 from prompt_toolkit.completion import Completer
+from prompt_toolkit.interface import CommandLineInterface
 from prompt_toolkit.validation import Validator
 from prompt_toolkit.shortcuts import create_eventloop
 
 from ptpython.completer import PythonCompleter
-from ptpython.key_bindings import load_python_bindings
-from ptpython.python_input import PythonCLISettings , PythonCommandLineInterface
-from ptpython.utils import document_is_multiline_python
+from ptpython.python_input import PythonInput
 from ptpython.validator import PythonValidator
 
 from .commands import commands_with_help, shortcuts
 from .completers import PythonFileCompleter, PythonFunctionCompleter, BreakPointListCompleter, AliasCompleter, PdbCommandsCompleter
 from .grammar import create_pdb_grammar
-#from .key_bindings import load_custom_pdb_key_bindings
+from .key_bindings import load_custom_pdb_key_bindings
 from .layout import PdbLeftMargin
 from .toolbars import PdbShortcutsToolbar, FileLocationToolbar
 from .completion_hints import CompletionHint
@@ -84,32 +82,16 @@ class PtPdb(pdb.Pdb):
 
         self._cli_history = FileHistory(os.path.expanduser('~/.ptpdb_history'))
 
-        self.python_cli_settings = PythonCLISettings()
-
         self.completer = None
         self.validator = None
 
-        # def is_multiline(document):
-        #     if (self.python_cli_settings.paste_mode or
-        #             self.python_cli_settings.currently_multiline):
-        #         return True
-
-        #     match = g.match_prefix(document.text)
-        #     if match:
-        #         for v in match.variables().getall('python_code'):
-        #             if document_is_multiline_python(Document(v)):
-        #                 return True
-        #     return False
-
-        self.cli = PythonCommandLineInterface(
-                eventloop=create_eventloop(),
+        self.python_input = PythonInput(
                 style=PdbStyle,
                 get_locals=lambda: self.curframe.f_locals,
                 get_globals=lambda: self.curframe.f_globals,
                 _completer=DynamicCompleter(lambda: self.completer),
                 _validator=DynamicValidator(lambda: self.validator),
-                _python_prompt_control=PdbLeftMargin(self.python_cli_settings,
-                                                     self._get_current_pdb_commands()),
+                _python_prompt_control=PdbLeftMargin(self._get_current_pdb_commands()),
                 _extra_buffers={'source_code': Buffer()},
                 _extra_buffer_processors=[CompletionHint()],
                 _extra_sidebars=[
@@ -126,19 +108,13 @@ class PtPdb(pdb.Pdb):
                     ]),
                 ],
         )
-            # XXX: TODO: add CompletionHint() after the input!!
-            # XXX: TODO: Add PDB key bindings again.
 
-#        # The key bindings manager. We reuse it between Pdb calls, in order to
-#        # remember vi/emacs state, etc..)
-#        self.key_bindings_manager = self._create_key_bindings_manager(self.python_cli_settings)
-#
-#    def _create_key_bindings_manager(self, settings):
-#        key_bindings_manager = KeyBindingManager()
-#        load_custom_pdb_key_bindings(key_bindings_manager.registry)  # XXX: implement
-#        load_python_bindings(key_bindings_manager, settings, None, None) # XXX: pass create tab functions
-#
-#        return key_bindings_manager
+        # Load additional key bindings.
+        load_custom_pdb_key_bindings(self.python_input.key_bindings_registry)
+
+        self.cli = CommandLineInterface(
+            eventloop=create_eventloop(),
+            application=self.python_input.create_application())
 
     def cmdloop(self, intro=None):
         """
@@ -193,14 +169,14 @@ class PtPdb(pdb.Pdb):
         Read PDB input. Return input text.
         """
         # Reset multiline/paste mode every time.
-        self.python_cli_settings.paste_mode = False
-        self.python_cli_settings.currently_multiline = False
+        self.python_input.paste_mode = False
+        self.python_input.currently_multiline = False
 
         # Make sure not to start in Vi navigation mode.
-#        self.key_bindings_manager.reset()
+        self.python_input.key_bindings_manager.reset()  # XXX: we should not have to do this here...
 
         # Set source code document.
-        self.cli.cli.buffers['source_code'].document = Document(self._get_source_code())
+        self.cli.buffers['source_code'].document = Document(self._get_source_code())
 
         # Set up a new completer and validator for the new grammar.
         g = self._create_grammar()
@@ -220,7 +196,7 @@ class PtPdb(pdb.Pdb):
         })
 
         try:
-            return self.cli.cli.read_input().text
+            return self.cli.run().text
         except EOFError:
             # Turn Control-D key press into a 'quit' command.
             return 'q'

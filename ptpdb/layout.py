@@ -12,7 +12,7 @@ class PdbLeftMargin(TokenListControl):
     Show "(pdb)" when we have a pdb command or '>>>' when the user types a
     Python command.
     """
-    def __init__(self, settings, pdb_commands):
+    def __init__(self, pdb_commands):
         def get_tokens(cli):
             b = cli.buffers['default']
 
