@@ -27,6 +27,7 @@ from prompt_toolkit.shortcuts import create_eventloop
 from ptpython.completer import PythonCompleter
 from ptpython.python_input import PythonInput
 from ptpython.validator import PythonValidator
+from ptpython.layout import CompletionVisualisation
 
 from .commands import commands_with_help, shortcuts
 from .completers import PythonFileCompleter, PythonFunctionCompleter, BreakPointListCompleter, AliasCompleter, PdbCommandsCompleter
@@ -35,7 +36,7 @@ from .key_bindings import load_custom_pdb_key_bindings
 from .layout import PdbLeftMargin
 from .toolbars import PdbShortcutsToolbar, FileLocationToolbar
 from .completion_hints import CompletionHint
-from .style import PdbStyle
+from .style import get_ui_style
 
 import linecache
 import os
@@ -86,7 +87,6 @@ class PtPdb(pdb.Pdb):
         self.validator = None
 
         self.python_input = PythonInput(
-                style=PdbStyle,
                 get_locals=lambda: self.curframe.f_locals,
                 get_globals=lambda: self.curframe.f_globals,
                 _completer=DynamicCompleter(lambda: self.completer),
@@ -108,6 +108,16 @@ class PtPdb(pdb.Pdb):
                     ]),
                 ],
         )
+
+        # Set UI styles.
+        self.python_input.ui_styles = {
+            'ptpdb': get_ui_style(),
+        }
+        self.python_input.use_ui_colorscheme('ptpdb')
+
+        # Set autocompletion style. (Multi-column works nicer.)
+        self.python_input.completion_visualisation = CompletionVisualisation.MULTI_COLUMN
+        self.python_input.complete_while_typing = False
 
         # Load additional key bindings.
         load_custom_pdb_key_bindings(self.python_input.key_bindings_registry)
