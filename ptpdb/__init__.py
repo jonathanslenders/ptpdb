@@ -17,7 +17,7 @@ from prompt_toolkit.contrib.regular_languages.validation import GrammarValidator
 from prompt_toolkit.document import Document
 from prompt_toolkit.filters import IsDone
 from prompt_toolkit.history import FileHistory
-from prompt_toolkit.layout import HSplit, Window
+from prompt_toolkit.layout.containers import HSplit, Window, ConditionalContainer
 from prompt_toolkit.layout.controls import BufferControl
 from prompt_toolkit.completion import Completer
 from prompt_toolkit.interface import CommandLineInterface
@@ -97,13 +97,14 @@ class PtPdb(pdb.Pdb):
                 _extra_sidebars=[
                     HSplit([
                         FileLocationToolbar(weakref.ref(self)),
-                        Window(
-                            BufferControl(
-                                buffer_name='source_code',
-                                lexer=PythonLexer,
+                        ConditionalContainer(
+                            Window(
+                                BufferControl(
+                                    buffer_name='source_code',
+                                    lexer=PythonLexer,
+                                ),
                             ),
-                            filter=~IsDone(),
-                        ),
+                            filter=~IsDone()),
                         PdbShortcutsToolbar(weakref.ref(self)),
                     ]),
                 ],
