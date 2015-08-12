@@ -18,7 +18,7 @@ class CompletionHint(AfterInput):
 
                 for commands, help in completion_hints:
                     if word in commands:
-                        return self._highlight_completion(' ' + help)
+                        return [(Token, ' ')] + self._highlight_completion(help)
 
             return []
         super(CompletionHint, self).__init__(get_tokens)
