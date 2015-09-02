@@ -2,6 +2,7 @@ from __future__ import unicode_literals, absolute_import
 
 from prompt_toolkit.layout.controls import TokenListControl
 from prompt_toolkit.filters import Condition
+from ptpython.prompt_style import PromptStyle
 
 from pygments.token import Token
 from pygments.lexers import PythonLexer
@@ -10,12 +11,12 @@ import linecache
 import os
 
 __all__ = (
-    'PdbLeftMargin',
+    'PdbPromptStyle',
     'CallStack',
     'format_stack_entry',
 )
 
-class PdbLeftMargin(TokenListControl):
+class PdbPromptStyle(PromptStyle):
     """
     Pdb prompt.
 
@@ -23,19 +24,23 @@ class PdbLeftMargin(TokenListControl):
     Python command.
     """
     def __init__(self, pdb_commands):
-        def get_tokens(cli):
-            b = cli.buffers['default']
+        self.pdb_commands = pdb_commands
 
-            command = b.document.text.lstrip()
-            if command:
-                command = command.split()[0]
+    def in_tokens(self, cli):
+        b = cli.buffers['default']
 
-            if any(c.startswith(command) for c in pdb_commands):
-                return [(Token.Prompt, '(pdb) ')]
-            else:
-                return [(Token.Prompt, '  >>> ')]
+        command = b.document.text.lstrip()
+        if command:
+            command = command.split()[0]
 
-        super(PdbLeftMargin, self).__init__(get_tokens)
+        if any(c.startswith(command) for c in self.pdb_commands):
+            return [(Token.Prompt, '(pdb) ')]
+        else:
+            return [(Token.Prompt, '  >>> ')]
+
+    def out_tokens(self, cli):
+        return []  # Not used.
+
 
 python_lexer = PythonLexer(
     stripnl=False,

@@ -40,7 +40,7 @@ from .commands import commands_with_help, shortcuts
 from .completers import PythonFileCompleter, PythonFunctionCompleter, BreakPointListCompleter, AliasCompleter, PdbCommandsCompleter
 from .grammar import create_pdb_grammar
 from .key_bindings import load_custom_pdb_key_bindings
-from .layout import PdbLeftMargin, CallStack, format_stack_entry
+from .layout import PdbPromptStyle, CallStack, format_stack_entry
 from .toolbars import PdbShortcutsToolbar, SourceTitlebar, StackTitlebar, BreakPointInfoToolbar
 from .completion_hints import CompletionHint
 from .style import get_ui_style
@@ -199,7 +199,6 @@ class PtPdb(pdb.Pdb):
             _completer=DynamicCompleter(lambda: self.completer),
             _validator=DynamicValidator(lambda: self.validator),
             _accept_action = self._create_accept_action(),
-            _python_prompt_control=PdbLeftMargin(self._get_current_pdb_commands()),
             _extra_buffers={'source_code': Buffer(read_only=True)},
             _input_buffer_height=LayoutDimension(min=2, max=4),
             _lexer=PdbLexer(),
@@ -242,6 +241,10 @@ class PtPdb(pdb.Pdb):
             ],
             history_filename=os.path.expanduser('~/.ptpdb_history'),
         )
+
+        # Override prompt style.
+        self.python_input.all_prompt_styles['pdb'] = PdbPromptStyle(self._get_current_pdb_commands())
+        self.python_input.prompt_style = 'pdb'
 
         # Override exit message.
         self.python_input.exit_message = 'Do you want to quit BDB? This raises BdbQuit.'
