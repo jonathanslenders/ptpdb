@@ -8,7 +8,7 @@ Usage::
     from prompt_toolkit.contrib.pdb import set_trace
     set_trace()
 """
-from __future__ import unicode_literals, absolute_import
+from __future__ import unicode_literals, absolute_import, print_function
 from pygments.lexers import PythonLexer
 from pygments.token import Token
 
@@ -86,7 +86,7 @@ class PdbLexer(Lexer):
         self.python_lexer = PygmentsLexer(PythonLexer)
 
     def get_tokens(self, cli, text):
-        parts = text.split(maxsplit=1)
+        parts = text.split(None, 1)
         first_word = parts[0] if parts else ''
 
         # When the first word is a PDB command:
@@ -272,7 +272,7 @@ class PtPdb(pdb.Pdb):
         """
         def handler(cli, buffer):
             # Get first part.
-            parts = buffer.text.strip().split(maxsplit=1)
+            parts = buffer.text.strip().split(None, 1)
             if len(parts) == 0:
                 first, rest = '', ''
             elif len(parts) == 1:
@@ -409,11 +409,11 @@ class PtPdb(pdb.Pdb):
         Override 'postcmd': (Insert whitespace.)
         """
         print('')
-        return super(PtPdb, self).postcmd(stop, line)
+        return pdb.Pdb.postcmd(self, stop, line)
 
     def preloop(self):
         print('')
-        super(PtPdb, self).preloop()
+        return pdb.Pdb.preloop(self)
 
     def do_interact(self, args):
         """
@@ -493,7 +493,6 @@ class PtPdb(pdb.Pdb):
         """
         if frame:
             current_lineno = frame.f_lineno
-            exc_lineno = self.tb_lineno.get(frame, -1)
         else:
             current_lineno = exc_lineno = -1
 
@@ -517,6 +516,11 @@ class PtPdb(pdb.Pdb):
 
         for l in lines:
             self.cli.print_tokens(l)
+
+    def message(self, msg):
+        """ Print message to stdout. This function is present in Pdb for
+        Python3, but not in Python2. """
+        print(msg, file=self.stdout)
 
 
 python_lexer = PythonLexer(
