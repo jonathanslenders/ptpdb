@@ -20,11 +20,11 @@ from prompt_toolkit.document import Document
 from prompt_toolkit.enums import DEFAULT_BUFFER
 from prompt_toolkit.filters import IsDone, Always, Condition
 from prompt_toolkit.interface import CommandLineInterface
-from prompt_toolkit.layout.containers import HSplit, Window, ConditionalContainer, FloatContainer, Float, VSplit
+from prompt_toolkit.layout.containers import HSplit, Window, ConditionalContainer, FloatContainer, Float, VSplit, ScrollOffsets
 from prompt_toolkit.layout.controls import BufferControl, FillControl
 from prompt_toolkit.layout.dimension import LayoutDimension
 from prompt_toolkit.layout.lexers import Lexer, PygmentsLexer
-from prompt_toolkit.layout.margins import Margin, NumberredMargin
+from prompt_toolkit.layout.margins import Margin, NumberredMargin, ScrollbarMargin
 from prompt_toolkit.layout.processors import HighlightSearchProcessor, HighlightSelectionProcessor, ConditionalProcessor
 from prompt_toolkit.layout.utils import iter_token_lines
 from prompt_toolkit.shortcuts import create_eventloop
@@ -135,22 +135,29 @@ class SourceCodeMargin(Margin):
     def __init__(self, ptpdb):
         self.ptpdb = ptpdb
 
-    def create_handler(self, cli, buffer):
-        numberred_margin_handler = NumberredMargin().create_handler(cli, buffer)
+    def get_width(self, cli):
+        return 3
+
+    def create_margin(self, cli, window_render_info, width, height):
         filename = self.ptpdb.curframe.f_code.co_filename
         breaklist = self.ptpdb.get_file_breaks(filename)
         curframe = self.ptpdb.curframe
 
-        def margin(lineno):
-            if lineno is None:
-                result = [(Token, ' ' * 3)]
-            else:
+        visible_line_to_input_line = window_render_info.visible_line_to_input_line
+
+        result = []
+
+        for y in range(window_render_info.window_height):
+            lineno = visible_line_to_input_line.get(y)
+
+            if lineno is not None:
                 is_current_line = lineno + 1 == curframe.f_lineno
                 is_break = (lineno + 1) in breaklist
-                result = get_line_prefix_tokens(is_break, is_current_line)
+                result.extend(get_line_prefix_tokens(is_break, is_current_line))
 
-            return result + numberred_margin_handler(lineno)
-        return margin
+            result.append((Token, '\n'))
+
+        return result
 
     def invalidation_hash(self, cli, document):
         filename = self.ptpdb.curframe.f_code.co_filename
@@ -176,13 +183,17 @@ class PtPdb(pdb.Pdb):
             BufferControl(
                 buffer_name='source_code',
                 lexer=PygmentsLexer(PythonLexer),
-                margin=SourceCodeMargin(self),
                 input_processors=[
                     HighlightSearchProcessor(preview_search=Always()),
                     HighlightSelectionProcessor(),
                 ],
             ),
-            scroll_offset=2,
+            left_margins=[
+                SourceCodeMargin(self),
+                NumberredMargin('source_code'),
+            ],
+            right_margins=[ScrollbarMargin()],
+            scroll_offsets=ScrollOffsets(top=2, bottom=2),
             height=LayoutDimension(preferred=10))
 
         # Callstack window.
@@ -228,7 +239,9 @@ class PtPdb(pdb.Pdb):
                         ]),
                         HSplit([
                             StackTitlebar(weakref.ref(self)),
-                            Window(callstack, scroll_offset=2,
+                            Window(callstack,
+                                   scroll_offsets=ScrollOffsets(top=2, bottom=2),
+                                   right_margins=[ScrollbarMargin()],
                                    height=LayoutDimension(preferred=10)),
                         ]),
                     ]),

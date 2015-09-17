@@ -38,6 +38,11 @@ class PdbPromptStyle(PromptStyle):
         else:
             return [(Token.Prompt, '  >>> ')]
 
+    def in2_tokens(self, cli, width):
+        return [
+            (Token.Prompt, '  ... ')
+        ]
+
     def out_tokens(self, cli):
         return []  # Not used.
 
