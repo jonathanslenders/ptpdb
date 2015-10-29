@@ -1,7 +1,8 @@
 from __future__ import unicode_literals, absolute_import
 
-from prompt_toolkit.layout.controls import TokenListControl
+from prompt_toolkit.enums import DEFAULT_BUFFER
 from prompt_toolkit.filters import Condition
+from prompt_toolkit.layout.controls import TokenListControl
 from ptpython.prompt_style import PromptStyle
 
 from pygments.token import Token
@@ -27,7 +28,7 @@ class PdbPromptStyle(PromptStyle):
         self.pdb_commands = pdb_commands
 
     def in_tokens(self, cli):
-        b = cli.buffers['default']
+        b = cli.buffers[DEFAULT_BUFFER]
 
         command = b.document.text.lstrip()
         if command:

@@ -1,6 +1,7 @@
 from __future__ import unicode_literals, absolute_import
 from pygments.token import Token
 
+from prompt_toolkit.enums import DEFAULT_BUFFER
 from prompt_toolkit.layout.processors import AfterInput
 from ptpdb.commands import completion_hints
 
@@ -11,7 +12,7 @@ class CompletionHint(AfterInput):
     """
     def __init__(self):
         def get_tokens(cli):
-            buffer = cli.buffers['default']
+            buffer = cli.buffers[DEFAULT_BUFFER]
             words = buffer.document.text.split()
             if len(words) == 1:
                 word = words[0]
