@@ -383,7 +383,7 @@ class PtPdb(pdb.Pdb):
         })
 
         # Make sure not to start in Vi navigation mode.
-        self.python_input.key_bindings_manager.reset()
+        self.python_input.key_bindings_manager.reset(self.cli)
         self.cli.buffers[DEFAULT_BUFFER].reset()
 
         def pre_run():

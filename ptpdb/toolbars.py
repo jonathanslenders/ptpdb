@@ -34,7 +34,7 @@ class PdbShortcutsToolbar(TokenListToolbar):
                     (token.Key, '[Arrows]'),
                     (token.Description, ' Navigate '),
                 ]
-            elif cli.focus_stack.current == 'source_code':
+            elif cli.current_buffer_name == 'source_code':
                 return [
                     (token.Description, ' '),
                     (token.Key, '[Ctrl-X]'),

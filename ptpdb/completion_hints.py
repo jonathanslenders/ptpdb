@@ -3,6 +3,7 @@ from pygments.token import Token
 
 from prompt_toolkit.enums import DEFAULT_BUFFER
 from prompt_toolkit.layout.processors import AfterInput
+
 from ptpdb.commands import completion_hints
 
 

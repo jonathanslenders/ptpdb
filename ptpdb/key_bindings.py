@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 from prompt_toolkit.document import Document
-from prompt_toolkit.enums import DEFAULT_BUFFER
+from prompt_toolkit.enums import DEFAULT_BUFFER, DUMMY_BUFFER
 from prompt_toolkit.filters import HasFocus, Condition
 from prompt_toolkit.key_binding.vi_state import InputMode
 from prompt_toolkit.keys import Keys
@@ -32,20 +32,19 @@ def load_custom_pdb_key_bindings(ptpdb, registry):
         Eager, because we want to ignore CtrlX-CtrlE and other key bindings
         starting with CtrlX.
         """
-        focus_stack = event.cli.focus_stack
-        vi_state = ptpdb.python_input.key_bindings_manager.vi_state
+        vi_state = ptpdb.python_input.key_bindings_manager.get_vi_state(event.cli)
 
-        if focus_stack.current == DEFAULT_BUFFER:
-            focus_stack.replace('source_code')
+        if event.cli.current_buffer_name == DEFAULT_BUFFER:
+            event.cli.focus('source_code')
             vi_state.input_mode = InputMode.NAVIGATION
 
-        elif focus_stack.current == 'source_code' and not ptpdb.callstack_focussed:
+        elif event.cli.current_buffer_name == 'source_code' and not ptpdb.callstack_focussed:
             ptpdb.callstack_focussed = True
-            focus_stack.replace(None)
+            event.cli.focus(DUMMY_BUFFER)
 
         else:
             ptpdb.callstack_focussed = False
-            focus_stack.replace(DEFAULT_BUFFER)
+            event.cli.focus(DEFAULT_BUFFER)
             vi_state.input_mode = InputMode.INSERT
 
     @handle(' ', filter=source_code_has_focus)
@@ -94,11 +93,10 @@ def load_custom_pdb_key_bindings(ptpdb, registry):
     @handle(Keys.ControlC, filter=~HasFocus(DEFAULT_BUFFER))
     def _(event):
         " Focus prompt again, wherever we are. "
-        focus_stack = event.cli.focus_stack
-        vi_state = ptpdb.python_input.key_bindings_manager.vi_state
+        vi_state = ptpdb.python_input.key_bindings_manager.get_vi_state(event.cli)
 
         ptpdb.callstack_focussed = False
-        focus_stack.replace(DEFAULT_BUFFER)
+        event.cli.focus(DEFAULT_BUFFER)
         vi_state.input_mode = InputMode.INSERT
 
     # Call stack key bindings.
