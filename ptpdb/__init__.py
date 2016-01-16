@@ -25,10 +25,11 @@ from prompt_toolkit.layout.controls import BufferControl, FillControl
 from prompt_toolkit.layout.dimension import LayoutDimension
 from prompt_toolkit.layout.lexers import Lexer, PygmentsLexer
 from prompt_toolkit.layout.margins import Margin, NumberredMargin, ScrollbarMargin
-from prompt_toolkit.layout.processors import HighlightSearchProcessor, HighlightSelectionProcessor, ConditionalProcessor
+from prompt_toolkit.layout.processors import ConditionalProcessor
 from prompt_toolkit.layout.utils import iter_token_lines
 from prompt_toolkit.shortcuts import create_eventloop
 from prompt_toolkit.validation import Validator
+from prompt_toolkit.layout.highlighters import SearchHighlighter, SelectionHighlighter
 
 from ptpython.completer import PythonCompleter
 from ptpython.layout import CompletionVisualisation
@@ -183,9 +184,9 @@ class PtPdb(pdb.Pdb):
             BufferControl(
                 buffer_name='source_code',
                 lexer=PygmentsLexer(PythonLexer),
-                input_processors=[
-                    HighlightSearchProcessor(preview_search=Always()),
-                    HighlightSelectionProcessor(),
+                highlighters=[
+                    SearchHighlighter(preview_search=Always()),
+                    SelectionHighlighter(),
                 ],
             ),
             left_margins=[
