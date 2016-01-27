@@ -49,6 +49,7 @@ from .style import get_ui_style
 import linecache
 import os
 import pdb
+import six
 import sys
 import weakref
 
@@ -408,7 +409,10 @@ class PtPdb(pdb.Pdb):
         """
         Return source code around current line as string.
         """
-        source_code = [l.decode('utf-8') for l in linecache.getlines(filename)]
+        source_code = linecache.getlines(filename)
+        if six.PY2:
+            source_code = [l.decode('utf-8') for l in source_code]
+
         source_code = ''.join(source_code)
         document = Document(source_code)
 
