@@ -408,7 +408,8 @@ class PtPdb(pdb.Pdb):
         """
         Return source code around current line as string.
         """
-        source_code = ''.join(linecache.getlines(filename))
+        source_code = [l.decode('utf-8') for l in linecache.getlines(filename)]
+        source_code = ''.join(source_code)
         document = Document(source_code)
 
         return Document(document.text, document.translate_row_col_to_index(
