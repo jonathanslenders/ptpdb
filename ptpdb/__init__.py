@@ -18,18 +18,17 @@ from prompt_toolkit.contrib.regular_languages.completion import GrammarCompleter
 from prompt_toolkit.contrib.regular_languages.validation import GrammarValidator
 from prompt_toolkit.document import Document
 from prompt_toolkit.enums import DEFAULT_BUFFER
-from prompt_toolkit.filters import IsDone, Always, Condition
+from prompt_toolkit.filters import IsDone, Condition
 from prompt_toolkit.interface import CommandLineInterface
 from prompt_toolkit.layout.containers import HSplit, Window, ConditionalContainer, FloatContainer, Float, VSplit, ScrollOffsets
 from prompt_toolkit.layout.controls import BufferControl, FillControl
 from prompt_toolkit.layout.dimension import LayoutDimension
 from prompt_toolkit.layout.lexers import Lexer, PygmentsLexer
 from prompt_toolkit.layout.margins import Margin, NumberredMargin, ScrollbarMargin
-from prompt_toolkit.layout.processors import ConditionalProcessor
-from prompt_toolkit.layout.utils import iter_token_lines
+from prompt_toolkit.layout.processors import ConditionalProcessor, HighlightSearchProcessor, HighlightSelectionProcessor
+from prompt_toolkit.layout.utils import split_lines
 from prompt_toolkit.shortcuts import create_eventloop
 from prompt_toolkit.validation import Validator
-from prompt_toolkit.layout.highlighters import SearchHighlighter, SelectionHighlighter
 
 from ptpython.completer import PythonCompleter
 from ptpython.layout import CompletionVisualisation
@@ -87,25 +86,30 @@ class PdbLexer(Lexer):
     def __init__(self):
         self.python_lexer = PygmentsLexer(PythonLexer)
 
-    def get_tokens(self, cli, text):
-        parts = text.split(None, 1)
+    def lex_document(self, cli, document):
+        parts = document.text.split(None, 1)
         first_word = parts[0] if parts else ''
 
         # When the first word is a PDB command:
         if first_word in shortcuts.keys() or first_word in commands_with_help.keys():
             # PDB:
             if cli.is_done:
-                return [
+                tokens = [
                     (Token.PdbCommand, ' %s ' % first_word),
                     (Token, ' '),
                     (Token, parts[1] if len(parts) > 1 else ''),
                 ]
             else:
-                return [(Token.Text, text)]
+                tokens = [(Token.Text, document.text)]
+
+            token_lines = list(split_lines(tokens))
+            def get_line(lineno):
+                return token_lines[lineno]
+            return get_line
 
         # Otherwise, highlight as Python code.
         else:
-            return self.python_lexer.get_tokens(cli, text)
+            return self.python_lexer.lex_document(cli, document)
 
 
 def get_line_prefix_tokens(is_break, is_current_line):
@@ -137,7 +141,7 @@ class SourceCodeMargin(Margin):
     def __init__(self, ptpdb):
         self.ptpdb = ptpdb
 
-    def get_width(self, cli):
+    def get_width(self, cli, _=None):
         return 3
 
     def create_margin(self, cli, window_render_info, width, height):
@@ -185,14 +189,14 @@ class PtPdb(pdb.Pdb):
             BufferControl(
                 buffer_name='source_code',
                 lexer=PygmentsLexer(PythonLexer),
-                highlighters=[
-                    SearchHighlighter(preview_search=Always()),
-                    SelectionHighlighter(),
+                input_processors=[
+                    HighlightSearchProcessor(preview_search=True),
+                    HighlightSelectionProcessor(),
                 ],
             ),
             left_margins=[
                 SourceCodeMargin(self),
-                NumberredMargin('source_code'),
+                NumberredMargin(),
             ],
             right_margins=[ScrollbarMargin()],
             scroll_offsets=ScrollOffsets(top=2, bottom=2),
@@ -520,7 +524,7 @@ class PtPdb(pdb.Pdb):
         all_tokens = python_lexer.get_tokens(''.join(lines))
 
         # Slice lines.
-        lines = list(iter_token_lines(all_tokens))[start-1:end]
+        lines = list(split_lines(all_tokens))[start-1:end]
 
         # Add left margin. (Numbers + 'B' or '->'.)
         def add_margin(lineno, tokens):
@@ -529,7 +533,7 @@ class PtPdb(pdb.Pdb):
 
             return get_line_prefix_tokens(is_break, is_current_line) \
                 + [(Token.LineNumber, str(lineno).rjust(3) + ' ')] \
-                + tokens
+                + tokens + [(Token, '\n')]
 
         lines = [add_margin(i + start, tokens) for i, tokens in enumerate(lines)]
 

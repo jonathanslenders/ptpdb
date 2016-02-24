@@ -11,7 +11,7 @@ setup(
     long_description='',
     packages=find_packages('.'),
     install_requires = [
-        'ptpython==0.28',
-        'prompt-toolkit==0.57',
+        'ptpython==0.29',
+        'prompt-toolkit==0.58',
     ],
 )

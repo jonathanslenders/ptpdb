@@ -72,7 +72,7 @@ class CallStack(TokenListControl):
 
                 # Focus cursor.
                 if is_selected:
-                    result.append((Token.SetCursorPosition, ''))
+                    result.append((Token.SetCursorPosition, ' '))
 
                 result.append((Token, '\n'))
 
