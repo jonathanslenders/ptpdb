@@ -17,8 +17,8 @@ def fibo(n):
     elif n == 1:
         return 1
     else:
-        return fibo(n-1) + fibo(n-2)
+        return fibo(n - 1) + fibo(n - 2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     fibo(20)

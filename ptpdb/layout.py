@@ -1,22 +1,18 @@
-from __future__ import unicode_literals, absolute_import
-
-from prompt_toolkit.enums import DEFAULT_BUFFER
-from prompt_toolkit.filters import Condition
-from prompt_toolkit.layout.controls import TokenListControl
-
-from ptpython.prompt_style import PromptStyle
-
-from pygments.token import Token
-from pygments.lexers import PythonLexer
-
 import linecache
 import os
 
+from prompt_toolkit.enums import DEFAULT_BUFFER
+from prompt_toolkit.filters import Condition
+from prompt_toolkit.layout.controls import FormattedTextControl
+from ptpython.prompt_style import PromptStyle
+from pygments.lexers import PythonLexer
+
 __all__ = (
-    'PdbPromptStyle',
-    'CallStack',
-    'format_stack_entry',
+    "PdbPromptStyle",
+    "CallStack",
+    "format_stack_entry",
 )
+
 
 class PdbPromptStyle(PromptStyle):
     """
@@ -25,10 +21,11 @@ class PdbPromptStyle(PromptStyle):
     Show "(pdb)" when we have a pdb command or '>>>' when the user types a
     Python command.
     """
+
     def __init__(self, pdb_commands):
         self.pdb_commands = pdb_commands
 
-    def in_tokens(self, cli):
+    def in_prompt(self):
         b = cli.buffers[DEFAULT_BUFFER]
 
         command = b.document.text.lstrip()
@@ -36,28 +33,23 @@ class PdbPromptStyle(PromptStyle):
             command = command.split()[0]
 
         if any(c.startswith(command) for c in self.pdb_commands):
-            return [(Token.Prompt, '(pdb) ')]
+            return [("class:prompt", "(pdb) ")]
         else:
-            return [(Token.Prompt, '  >>> ')]
+            return [("class:prompt", "  >>> ")]
 
-    def in2_tokens(self, cli, width):
-        return [
-            (Token.Prompt, '  ... ')
-        ]
+    def in2_prompt(self, width: int):
+        return [("class:prompt", "  ... ")]
 
-    def out_tokens(self, cli):
+    def out_prompt(self):
         return []  # Not used.
 
 
-python_lexer = PythonLexer(
-    stripnl=False,
-    stripall=False,
-    ensurenl=False)
+python_lexer = PythonLexer(stripnl=False, stripall=False, ensurenl=False)
 
 
-class CallStack(TokenListControl):
+class CallStack(FormattedTextControl):
     def __init__(self, pdb_ref):
-        def get_tokens(cli):
+        def get_text():
             """
             See bdb.py, format_stack_entry.
             """
@@ -72,55 +64,57 @@ class CallStack(TokenListControl):
 
                 # Focus cursor.
                 if is_selected:
-                    result.append((Token.SetCursorPosition, ' '))
+                    result.append(("[SetCursorPosition]", " "))
 
-                result.append((Token, '\n'))
+                result.append(("", "\n"))
 
             return result
 
-        super(CallStack, self).__init__(
-            get_tokens, has_focus=Condition(lambda cli: pdb_ref().callstack_focussed))
+        super().__init__(
+            get_text,
+            #            has_focus=Condition(lambda cli: pdb_ref().callstack_focussed)
+        )
 
 
 def format_stack_entry(pdb, frame, lineno, has_focus=False):
     result = []
 
     if frame is pdb.curframe:
-        result.append((Token.CurrentLine, '->'))
-        result.append((Token, ' '))
+        result.append(("class:current-line", "->"))
+        result.append(("", " "))
     else:
-        result.append((Token, '   '))
+        result.append(("", "   "))
 
     filename = pdb.canonic(frame.f_code.co_filename)
 
     # Filename/lineno
-    token = Token.Name.Selected if has_focus else Token.Name
+    token = "class:name.selected" if has_focus else "class:name"
     result.append((token, os.path.basename(filename)))
-    result.append((Token.Number, '(%r)' % lineno))
+    result.append(("class:number", "(%r)" % lineno))
 
     # co_name
     if frame.f_code.co_name:
-        result.append((Token.Name, frame.f_code.co_name))
+        result.append(("class:name", frame.f_code.co_name))
     else:
-        result.append((Token.Name, '<lambda>'))
+        result.append(("class:name", "<lambda>"))
 
     # Args.
-    if '__args__' in frame.f_locals:
-        args = frame.f_locals['__args__']
-        result.append((Token.Name, repr(args)))
+    if "__args__" in frame.f_locals:
+        args = frame.f_locals["__args__"]
+        result.append(("class:name", repr(args)))
     else:
-        result.append((Token.Punctuation, '()'))
+        result.append(("class:punctuation", "()"))
 
     # Return value.
-    if '__return__' in frame.f_locals:
-        rv = frame.f_locals['__return__']
-        result.append((Token.Operator, '->'))
-        result.append((Token, repr(rv)))
+    if "__return__" in frame.f_locals:
+        rv = frame.f_locals["__return__"]
+        result.append(("class:operator", "->"))
+        result.append(("", repr(rv)))
 
-    result.append((Token, '\n'))
+    result.append(("", "\n"))
     if has_focus:
-        result.append((Token.SelectedFrame, ''))
-    result.append((Token, '     '))
+        result.append(("class:selected-frame", ""))
+    result.append(("", "     "))
 
     line = linecache.getline(filename, lineno, frame.f_globals).strip()
     result.extend(python_lexer.get_tokens(line))

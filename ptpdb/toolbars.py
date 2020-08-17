@@ -1,154 +1,173 @@
-from __future__ import unicode_literals, absolute_import
-from pygments.token import Token
-
-from prompt_toolkit.layout.toolbars import TokenListToolbar
-from prompt_toolkit.layout.screen import Char
-
-from prompt_toolkit.filters import IsDone, Condition
-
 from bdb import Breakpoint
 
-__all__ = (
-    'PdbShortcutsToolbar',
-    'SourceTitlebar',
-    'StackTitlebar',
-    'BreakPointInfoToolbar',
-)
+from prompt_toolkit.filters import Condition, is_done
+from prompt_toolkit.layout import ConditionalContainer, FormattedTextControl, Window
+
+__all__ = [
+    "PdbShortcutsToolbar",
+    "SourceTitlebar",
+    "StackTitlebar",
+    "BreakPointInfoToolbar",
+]
 
 
-class PdbShortcutsToolbar(TokenListToolbar):
+class PdbShortcutsToolbar:
     """
     Toolbar which shows the Pdb status. (current line and line number.)
     """
-    def __init__(self, pdb_ref):
-        token = Token.Toolbar.Shortcuts
 
-        def get_tokens(cli):
+    def __init__(self, pdb_ref):
+        def get_tokens():
             if pdb_ref().callstack_focussed:
                 return [
-                    (token.Description, ' '),
-                    (token.Key, '[Ctrl-X]'),
-                    (token.Description, ' Focus CLI '),
-                    (token.Key, '[Enter]'),
-                    (token.Description, ' Go to frame '),
-                    (token.Key, '[Arrows]'),
-                    (token.Description, ' Navigate '),
+                    ("class:toolbar.shortcuts.description", " "),
+                    ("class:toolbar.shortcuts.key", "[Ctrl-X]"),
+                    ("class:toolbar.shortcuts.description", " Focus CLI "),
+                    ("class:toolbar.shortcuts.key", "[Enter]"),
+                    ("class:toolbar.shortcuts.description", " Go to frame "),
+                    ("class:toolbar.shortcuts.key", "[Arrows]"),
+                    ("class:toolbar.shortcuts.description", " Navigate "),
                 ]
-            elif cli.current_buffer_name == 'source_code':
+            elif cli.current_buffer_name == "source_code":
                 return [
-                    (token.Description, ' '),
-                    (token.Key, '[Ctrl-X]'),
-                    (token.Description, ' Focus CLI '),
-                    (token.Key, '[s]'),
-                    (token.Description, 'tep '),
-                    (token.Key, '[n]'),
-                    (token.Description, 'ext '),
-                    (token.Key, '[c]'),
-                    (token.Description, 'ontinue '),
-                    (token.Key, '[q]'),
-                    (token.Description, 'uit '),
-                    (token.Key, '[b]'),
-                    (token.Description, 'reak '),
-                    (token.Key, '[Arrows]'),
-                    (token.Description, ' Navigate '),
+                    ("class:toolbar.shortcuts.description", " "),
+                    ("class:toolbar.shortcuts.key", "[Ctrl-X]"),
+                    ("class:toolbar.shortcuts.description", " Focus CLI "),
+                    ("class:toolbar.shortcuts.key", "[s]"),
+                    ("class:toolbar.shortcuts.description", "tep "),
+                    ("class:toolbar.shortcuts.key", "[n]"),
+                    ("class:toolbar.shortcuts.description", "ext "),
+                    ("class:toolbar.shortcuts.key", "[c]"),
+                    ("class:toolbar.shortcuts.description", "ontinue "),
+                    ("class:toolbar.shortcuts.key", "[q]"),
+                    ("class:toolbar.shortcuts.description", "uit "),
+                    ("class:toolbar.shortcuts.key", "[b]"),
+                    ("class:toolbar.shortcuts.description", "reak "),
+                    ("class:toolbar.shortcuts.key", "[Arrows]"),
+                    ("class:toolbar.shortcuts.description", " Navigate "),
                 ]
             else:
                 return [
-                    (token.Description, ' '),
-                    (token.Key, '[Ctrl-X]'),
-                    (token.Description, ' Focus source code '),
+                    ("class:toolbar.shortcuts.description", " "),
+                    ("class:toolbar.shortcuts.key", "[Ctrl-X]"),
+                    ("class:toolbar.shortcuts.description", " Focus source code "),
                 ]
 
-        super(PdbShortcutsToolbar, self).__init__(get_tokens,
-                                               default_char=Char(token=token.Description),
-                                               filter=~IsDone())
+        self.container = ConditionalContainer(
+            Window(FormattedTextControl(get_tokens), height=1, style="class:toolbar",),
+            filter=~is_done,
+        )
+
+    def __pt_container__(self):
+        return self.container
 
 
-class SourceTitlebar(TokenListToolbar):
+class SourceTitlebar:
     """
     Toolbar which shows the filename and line number.
     """
-    def __init__(self, pdb_ref):
-        token = Token.Toolbar.Title
 
-        def get_tokens(cli):
+    def __init__(self, pdb_ref):
+        def get_tokens():
             pdb = pdb_ref()
 
             return [
-                (token, '\u2500\u2500'),
-                (token.Text, ' '),
-                (token.Text, pdb.curframe.f_code.co_filename or 'None'),
-                (token.Text, ' : %s ' % pdb.curframe.f_lineno),
+                ("class:toolbar.title", "\u2500\u2500"),
+                ("class:toolbar.title.text", " "),
+                ("class:toolbar.title.text", pdb.curframe.f_code.co_filename or "None"),
+                ("class:toolbar.title.text", " : %s " % pdb.curframe.f_lineno),
             ]
 
-        super(SourceTitlebar, self).__init__(
-            get_tokens, default_char=Char(token=token, char='\u2500'))
+        self.container = Window(
+            FormattedTextControl(get_tokens),
+            height=1,
+            style="class:toolbar.title",
+            char="\u2500",
+        )
+
+    def __pt_container__(self):
+        return self.container
 
 
-class StackTitlebar(TokenListToolbar):
+class StackTitlebar:
     """
     """
+
     def __init__(self, pdb_ref):
-        token = Token.Toolbar.Title
-
-        def get_tokens(cli):
+        def get_tokens():
             pdb = pdb_ref()
 
             result = [
-                (token, '\u2500\u2500'),
-                (token.Text, ' Stack ')
+                ("class:toolbar.title", "\u2500\u2500"),
+                ("class:toolbar.title.text", " Stack "),
             ]
 
             if pdb.callstack_focussed:
-                text = '(frame %i/%i) ' % (pdb.callstack_selected_frame + 1, len(pdb.stack))
-                result.append((token.Text, text))
+                text = "(frame %i/%i) " % (
+                    pdb.callstack_selected_frame + 1,
+                    len(pdb.stack),
+                )
+                result.append(("class:toolbar.title.text", text))
 
             return result
 
-        super(StackTitlebar, self).__init__(
-            get_tokens, default_char=Char(token=token, char='\u2500'))
+        self.container = Window(
+            FormattedTextControl(get_tokens),
+            height=1,
+            style="class:toolbar",
+            char="\u2500",
+        )
+
+    def __pt_container__(self):
+        return self.container
 
 
-class BreakPointInfoToolbar(TokenListToolbar):
+class BreakPointInfoToolbar:
     """
     Show info about the current breakpoint.
     """
-    def __init__(self, pdb_ref):
-        token = Token.Break
 
-        def get_break(cli):
+    def __init__(self, pdb_ref):
+        token = "class:break"
+
+        def get_break():
             """ Get Breakpoints. """
             pdb = pdb_ref()
             filename = pdb.canonic(pdb.curframe.f_code.co_filename)
-            lineno = cli.buffers['source_code'].document.cursor_position_row + 1
+            lineno = cli.buffers["source_code"].document.cursor_position_row + 1
             if (filename, lineno) in Breakpoint.bplist:
                 return Breakpoint.bplist[filename, lineno]
             else:
                 return []
 
-        def get_tokens(cli):
-            breaks = get_break(cli)
+        def get_tokens():
+            breaks = get_break()
             result = []
 
             for b in breaks:
                 if not b.enabled:
-                    result.append((token, ' [disabled]'))
+                    result.append((token, " [disabled]"))
 
-                result.append((token, ' '))
-                result.append((token, 'BP %i' % b.number))
+                result.append((token, " "))
+                result.append((token, "BP %i" % b.number))
 
                 if b.cond:
-                    result.append((token, ' '))
-                    result.append((token.Condition, ' '))
-                    result.append((token.Condition, str(b.cond)))
-                    result.append((token.Condition, ' '))
+                    result.append((token, " "))
+                    result.append((token + ".condition", " "))
+                    result.append((token + ".condition", str(b.cond)))
+                    result.append((token + ".condition", " "))
 
                 if b.hits:
-                    text = 'hit' if b.hits == 1 else 'hits'
-                    result.append((token, ', %i %s' % (b.hits, text)))
-                result.append((token, ' '))
+                    text = "hit" if b.hits == 1 else "hits"
+                    result.append((token, ", %i %s" % (b.hits, text)))
+                result.append((token, " "))
 
             return result
 
-        super(BreakPointInfoToolbar, self).__init__(get_tokens,
-                filter=Condition(lambda cli: bool(get_break(cli))))
+        self.container = ConditionalContainer(
+            Window(FormattedTextControl(get_tokens), height=1),
+            filter=Condition(lambda: bool(get_break())),
+        )
+
+    def __pt_container__(self):
+        return self.container

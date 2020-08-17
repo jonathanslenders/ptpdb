@@ -1,28 +1,28 @@
-from __future__ import unicode_literals
 from prompt_toolkit.document import Document
-from prompt_toolkit.enums import DEFAULT_BUFFER, DUMMY_BUFFER
-from prompt_toolkit.filters import HasFocus, Condition
+from prompt_toolkit.enums import DEFAULT_BUFFER  # , DUMMY_BUFFER
+from prompt_toolkit.filters import Condition, HasFocus
+from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.key_binding.vi_state import InputMode
 from prompt_toolkit.keys import Keys
 
-__all__ = (
-    'load_custom_pdb_key_bindings',
-)
+__all__ = ("load_custom_pdb_key_bindings",)
 
 
-def load_custom_pdb_key_bindings(ptpdb, registry):
+def load_custom_pdb_key_bindings(ptpdb):
     """
     Custom key bindings.
     """
-    handle = registry.add_binding
+    kb = KeyBindings()
+    handle = kb.add
 
-    source_code_has_focus = HasFocus('source_code') & Condition(
-        lambda cli: not ptpdb.python_input.show_exit_confirmation)
+    source_code_has_focus = HasFocus("source_code") & Condition(
+        lambda: not ptpdb.python_input.show_exit_confirmation
+    )
 
     def return_text(event, text):
         buffer = event.cli.buffers[DEFAULT_BUFFER]
         buffer.document = Document(text)
-        event.cli.set_return_value(buffer.document)
+        event.app.set_return_value(buffer.document)
 
     @handle(Keys.ControlX, eager=True)
     def _(event):
@@ -35,10 +35,13 @@ def load_custom_pdb_key_bindings(ptpdb, registry):
         vi_state = ptpdb.python_input.key_bindings_manager.get_vi_state(event.cli)
 
         if event.cli.current_buffer_name == DEFAULT_BUFFER:
-            event.cli.focus('source_code')
+            event.cli.focus("source_code")
             vi_state.input_mode = InputMode.NAVIGATION
 
-        elif event.cli.current_buffer_name == 'source_code' and not ptpdb.callstack_focussed:
+        elif (
+            event.cli.current_buffer_name == "source_code"
+            and not ptpdb.callstack_focussed
+        ):
             ptpdb.callstack_focussed = True
             event.cli.focus(DUMMY_BUFFER)
 
@@ -47,8 +50,8 @@ def load_custom_pdb_key_bindings(ptpdb, registry):
             event.cli.focus(DEFAULT_BUFFER)
             vi_state.input_mode = InputMode.INSERT
 
-    @handle(' ', filter=source_code_has_focus)
-    @handle('b', filter=source_code_has_focus)
+    @handle(" ", filter=source_code_has_focus)
+    @handle("b", filter=source_code_has_focus)
     @handle(Keys.ControlJ, filter=source_code_has_focus)
     def _(event):
         """
@@ -64,28 +67,28 @@ def load_custom_pdb_key_bindings(ptpdb, registry):
         else:
             ptpdb.set_break(filename, lineno)
 
-    @handle('n', filter=source_code_has_focus)
+    @handle("n", filter=source_code_has_focus)
     def _(event):
         """
         Debug: Next.
         """
-        return_text(event, 'next')
+        return_text(event, "next")
 
-    @handle('s', filter=source_code_has_focus)
+    @handle("s", filter=source_code_has_focus)
     def _(event):
         """
         Debug: Step
         """
-        return_text(event, 'step')
+        return_text(event, "step")
 
-    @handle('c', filter=source_code_has_focus)
+    @handle("c", filter=source_code_has_focus)
     def _(event):
         """
         Debug: Continue.
         """
-        return_text(event, 'continue')
+        return_text(event, "continue")
 
-    @handle('q', filter=source_code_has_focus)
+    @handle("q", filter=source_code_has_focus)
     def _(event):
         " Quit. "
         ptpdb.python_input.show_exit_confirmation = True
@@ -101,12 +104,11 @@ def load_custom_pdb_key_bindings(ptpdb, registry):
 
     # Call stack key bindings.
 
-    call_stack_has_focus = Condition(lambda cli: ptpdb.callstack_focussed)
-    handle = registry.add_binding
+    call_stack_has_focus = Condition(lambda: ptpdb.callstack_focussed)
 
     @handle(Keys.Up, filter=call_stack_has_focus)
     @handle(Keys.ControlP, filter=call_stack_has_focus)
-    @handle('k', filter=call_stack_has_focus)
+    @handle("k", filter=call_stack_has_focus)
     def _(event):
         " Go to previous frame. "
         if ptpdb.callstack_selected_frame > 0:
@@ -114,7 +116,7 @@ def load_custom_pdb_key_bindings(ptpdb, registry):
 
     @handle(Keys.Down, filter=call_stack_has_focus)
     @handle(Keys.ControlN, filter=call_stack_has_focus)
-    @handle('j', filter=call_stack_has_focus)
+    @handle("j", filter=call_stack_has_focus)
     def _(event):
         " Go to next frame. "
         if ptpdb.callstack_selected_frame < len(ptpdb.stack) - 1:
@@ -134,7 +136,9 @@ def load_custom_pdb_key_bindings(ptpdb, registry):
                 current = i
 
         if current > selected:
-            return_text(event, 'up %i' % (current - selected))
+            return_text(event, "up %i" % (current - selected))
 
         elif current < selected:
-            return_text(event, 'down  %i' % (selected - current))
+            return_text(event, "down  %i" % (selected - current))
+
+    return kb
